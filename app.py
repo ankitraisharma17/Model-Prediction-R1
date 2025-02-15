@@ -55,20 +55,43 @@ def build_lstm_model(window_size):
     model.compile(loss="mse", optimizer="adam")
     return model
 
-# Load trained models (only load Solana model for now)
-# Replace with actual file paths if necessary
-sol_model = load_model("solana_model.h5")
-
 # Streamlit UI
 st.title("Cryptocurrency Price Prediction")
+
 coin = st.selectbox("Select a cryptocurrency", ["Bitcoin", "Solana"])
 days = st.slider("Select the number of days for data", 30, 365, 365)
+
+# Load trained models when the app starts
+@st.cache(allow_output_mutation=True)
+def load_models():
+    btc_model = None
+    sol_model = None
+    
+    # Check and load Bitcoin model
+    try:
+        btc_model = load_model("bitcoin_model.h5")
+        st.success("Bitcoin model loaded successfully!")
+    except Exception as e:
+        st.warning(f"Failed to load Bitcoin model: {str(e)}")
+        
+    # Check and load Solana model
+    try:
+        sol_model = load_model("solana_model.h5")
+        st.success("Solana model loaded successfully!")
+    except Exception as e:
+        st.warning(f"Failed to load Solana model: {str(e)}")
+        
+    return btc_model, sol_model
+
+# Load models when needed
+btc_model, sol_model = load_models()
 
 if st.button("Fetch Data"):
     st.write(f"Fetching {coin} data for the last {days} days...")
 
     # Fetch data
     data = fetch_crypto_data(coin.lower(), days=str(days))
+    
     if data is not None:
         st.line_chart(data.set_index('timestamp')['price'])
         st.write("Data fetched successfully!")
@@ -78,19 +101,21 @@ if st.button("Fetch Data"):
 
         # Prepare data for LSTM
         X, y = prepare_data(data)
-        
+
         # Make predictions with the selected model
-        if coin.lower() == "bitcoin":
-            # If you have the Bitcoin model, load it here
-            btc_model = load_model("bitcoin_model.h5")  # Replace with actual path if necessary
+        if coin.lower() == "bitcoin" and btc_model is not None:
             model = btc_model
+        elif coin.lower() == "solana" and sol_model is not None:
+            model = sol_model
         else:
-            model = sol_model  # Solana model is already loaded above
+            st.error("Model for selected coin is not loaded correctly.")
+            model = None
 
-        predictions = model.predict(X)
+        if model is not None:
+            predictions = model.predict(X)
 
-        # Show predictions
-        st.write(f"Predicted {coin} price for the next day: {predictions[-1][0]}")
-        
-        # Plot predictions
-        st.line_chart(predictions.flatten())
+            # Show predictions
+            st.write(f"Predicted {coin} price for the next day: {predictions[-1][0]}")
+
+            # Plot predictions
+            st.line_chart(predictions.flatten())
