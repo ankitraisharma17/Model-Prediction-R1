@@ -56,7 +56,7 @@ def build_lstm_model(window_size):
     return model
 
 # Load trained models
-btc_model = load_model("bitcoin_model.h5")
+#btc_model = load_model("bitcoin_model.h5")
 sol_model = load_model("solana_model.h5")
 
 # Streamlit UI
