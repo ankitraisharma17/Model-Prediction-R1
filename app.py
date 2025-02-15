@@ -55,8 +55,8 @@ def build_lstm_model(window_size):
     model.compile(loss="mse", optimizer="adam")
     return model
 
-# Load trained models
-#btc_model = load_model("bitcoin_model.h5")
+# Load trained models (only load Solana model for now)
+# Replace with actual file paths if necessary
 sol_model = load_model("solana_model.h5")
 
 # Streamlit UI
@@ -80,9 +80,15 @@ if st.button("Fetch Data"):
         X, y = prepare_data(data)
         
         # Make predictions with the selected model
-        model = btc_model if coin.lower() == "bitcoin" else sol_model
+        if coin.lower() == "bitcoin":
+            # If you have the Bitcoin model, load it here
+            btc_model = load_model("bitcoin_model.h5")  # Replace with actual path if necessary
+            model = btc_model
+        else:
+            model = sol_model  # Solana model is already loaded above
+
         predictions = model.predict(X)
-        
+
         # Show predictions
         st.write(f"Predicted {coin} price for the next day: {predictions[-1][0]}")
         
