@@ -3,11 +3,11 @@ import pandas as pd
 import numpy as np
 import requests
 import tensorflow as tf
-from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
-from datetime import datetime, timedelta
+from tensorflow.keras.optimizers import Adam
 
-# Function to fetch cryptocurrency data from CoinGecko
+# Function to fetch cryptocurrency data
 def fetch_crypto_data(coin="bitcoin", days="365"):
     url = f"https://api.coingecko.com/api/v3/coins/{coin}/market_chart?vs_currency=usd&days={days}"
     headers = {"User-Agent": "Mozilla/5.0"}  # Avoid blocking
@@ -38,28 +38,23 @@ def compute_rsi(prices, period=14):
     rs = gain / loss
     return 100 - (100 / (1 + rs))
 
-# Prepare data for LSTM model (reshaping data to meet LSTM input requirements)
+# Prepare data for LSTM model
 def prepare_data(df, window_size=10):
     data = []
     labels = []
     for i in range(len(df) - window_size):
-        data.append(df.iloc[i:i+window_size, 1:].values)  # Use indicators and price
-        labels.append(df.iloc[i+window_size]["price"])  # Predict the next price
+        data.append(df.iloc[i:i+window_size, 1:].values)
+        labels.append(df.iloc[i+window_size]["price"])
     return np.array(data), np.array(labels)
 
-# Build a simple LSTM model (if models are not available)
+# Function to build LSTM model
 def build_lstm_model(window_size):
     model = Sequential([
         LSTM(50, return_sequences=True, input_shape=(window_size, 4)),
         LSTM(50),
         Dense(1)
     ])
-    model.compile(loss="mse", optimizer="adam")
+    model.compile(loss="mse", optimizer=Adam())
     return model
 
-# Streamlit UI
-st.title("Ankit's Cryptocurrency Prediction Model")
-coin = st.selectbox("Select a cryptocurrency", ["Bitcoin", "Solana"])
-days = st.slider("Select the number of days for data", 30, 365, 365)
-
-# Fetch and prepare data w
+# St
