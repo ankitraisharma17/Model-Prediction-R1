@@ -58,7 +58,7 @@ def build_lstm_model(window_size):
     return model
 
 # Streamlit UI
-st.title("Ankit's Cryptocurrency Prediction Model")
+st.title("Ankits Prediction Model")
 
 coin = st.selectbox("Select a cryptocurrency", ["Bitcoin", "Solana"])
 days = st.slider("Select the number of days for data", 30, 365, 365)
