@@ -1,7 +1,9 @@
 streamlit
 pandas
 numpy
-yfinance
+requests
 scikit-learn
-tensorflow
 matplotlib
+seaborn
+tensorflow
+keras
