@@ -57,4 +57,44 @@ def build_lstm_model(window_size):
     model.compile(loss="mse", optimizer=Adam())
     return model
 
-# St
+# Streamlit UI
+st.title("Ankit's Cryptocurrency Prediction Model")
+
+coin = st.selectbox("Select a cryptocurrency", ["Bitcoin", "Solana"])
+days = st.slider("Select the number of days for data", 30, 365, 365)
+
+if st.button("Fetch Data"):
+    st.write(f"Fetching {coin} data for the last {days} days...")
+
+    # Fetch data
+    data = fetch_crypto_data(coin.lower(), days=str(days))
+    if data is not None:
+        st.line_chart(data.set_index('timestamp')['price'])
+        st.write("Data fetched successfully!")
+
+        # Compute indicators
+        data = compute_indicators(data)
+
+        # Prepare data for LSTM
+        window_size = 10
+        X, y = prepare_data(data, window_size)
+
+        # Build and train the LSTM model
+        model = build_lstm_model(window_size)
+        model.fit(X, y, epochs=5, batch_size=32)
+
+        # Make predictions for each day (not just the next day)
+        predictions = model.predict(X)
+
+        # Display predictions alongside the actual prices
+        prediction_df = pd.DataFrame({
+            "timestamp": data["timestamp"].iloc[window_size:].values,
+            "actual_price": data["price"].iloc[window_size:].values,
+            "predicted_price": predictions.flatten()
+        })
+
+        st.write("Predictions vs Actual Prices")
+        st.line_chart(prediction_df.set_index('timestamp')[['actual_price', 'predicted_price']])
+
+        st.write(f"Predicted prices for {coin} for the next {days} days:")
+        st.write(prediction_df)
