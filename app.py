@@ -3,10 +3,11 @@ import pandas as pd
 import numpy as np
 import requests
 import tensorflow as tf
-from tensorflow.keras.models import load_model
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.layers import LSTM, Dense
 from datetime import datetime, timedelta
 
-# Function to fetch cryptocurrency data
+# Function to fetch cryptocurrency data from CoinGecko
 def fetch_crypto_data(coin="bitcoin", days="365"):
     url = f"https://api.coingecko.com/api/v3/coins/{coin}/market_chart?vs_currency=usd&days={days}"
     headers = {"User-Agent": "Mozilla/5.0"}  # Avoid blocking
@@ -37,55 +38,28 @@ def compute_rsi(prices, period=14):
     rs = gain / loss
     return 100 - (100 / (1 + rs))
 
-# Prepare data for LSTM model
+# Prepare data for LSTM model (reshaping data to meet LSTM input requirements)
 def prepare_data(df, window_size=10):
     data = []
     labels = []
     for i in range(len(df) - window_size):
-        data.append(df.iloc[i:i+window_size, 1:].values)  # Using indicators and price
-        labels.append(df.iloc[i+window_size]["price"])  # Predicting the next price
+        data.append(df.iloc[i:i+window_size, 1:].values)  # Use indicators and price
+        labels.append(df.iloc[i+window_size]["price"])  # Predict the next price
     return np.array(data), np.array(labels)
 
-# Load trained models
-btc_model = load_model("bitcoin_model.h5")
-sol_model = load_model("solana_model.h5")
+# Build a simple LSTM model (if models are not available)
+def build_lstm_model(window_size):
+    model = Sequential([
+        LSTM(50, return_sequences=True, input_shape=(window_size, 4)),
+        LSTM(50),
+        Dense(1)
+    ])
+    model.compile(loss="mse", optimizer="adam")
+    return model
 
 # Streamlit UI
-st.title("Ankit's Model")
+st.title("Ankit's Cryptocurrency Prediction Model")
 coin = st.selectbox("Select a cryptocurrency", ["Bitcoin", "Solana"])
 days = st.slider("Select the number of days for data", 30, 365, 365)
 
-if st.button("Fetch Data"):
-    st.write(f"Fetching {coin} data for the last {days} days...")
-
-    # Fetch data
-    data = fetch_crypto_data(coin.lower(), days=str(days))
-    if data is not None:
-        st.line_chart(data.set_index('timestamp')['price'])
-        st.write("Data fetched successfully!")
-
-        # Compute indicators
-        data = compute_indicators(data)
-
-        # Prepare data for LSTM
-        window_size = 10  # Use 10 as the window size for LSTM
-        X, y = prepare_data(data, window_size)
-
-        # Select model based on the selected cryptocurrency
-        model = btc_model if coin.lower() == "bitcoin" else sol_model
-        
-        # Make predictions with the selected model
-        predictions = model.predict(X)
-        
-        # Show prediction for the next day
-        predicted_price = predictions[-1][0]  # Predicting the next price
-        st.write(f"Predicted {coin} price for the next day: ${predicted_price:.2f}")
-        
-        # Plot the actual vs predicted prices (last 30 days)
-        st.line_chart(data.set_index('timestamp')['price'].tail(30))  # Display last 30 days' actual prices
-        st.line_chart(predictions.flatten())  # Display predictions for the last 30 days
-
-        # Predict today's date for the next day
-        today = datetime.now()
-        tomorrow = today + timedelta(days=1)
-        st.write(f"Predicted {coin} price for tomorrow ({tomorrow.strftime('%Y-%m-%d')}): ${predicted_price:.2f}")
+# Fetch and prepare data w
