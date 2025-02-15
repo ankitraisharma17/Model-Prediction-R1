@@ -4,6 +4,7 @@ import numpy as np
 import requests
 import tensorflow as tf
 from tensorflow.keras.models import load_model
+from datetime import datetime, timedelta
 
 # Function to fetch cryptocurrency data
 def fetch_crypto_data(coin="bitcoin", days="365"):
@@ -50,7 +51,7 @@ btc_model = load_model("bitcoin_model.h5")
 sol_model = load_model("solana_model.h5")
 
 # Streamlit UI
-st.title("Cryptocurrency Price Prediction")
+st.title("Ankit's Model")
 coin = st.selectbox("Select a cryptocurrency", ["Bitcoin", "Solana"])
 days = st.slider("Select the number of days for data", 30, 365, 365)
 
@@ -67,12 +68,24 @@ if st.button("Fetch Data"):
         data = compute_indicators(data)
 
         # Prepare data for LSTM
-        X, y = prepare_data(data)
-        
+        window_size = 10  # Use 10 as the window size for LSTM
+        X, y = prepare_data(data, window_size)
+
         # Select model based on the selected cryptocurrency
         model = btc_model if coin.lower() == "bitcoin" else sol_model
         
         # Make predictions with the selected model
         predictions = model.predict(X)
         
-        # Show predi
+        # Show prediction for the next day
+        predicted_price = predictions[-1][0]  # Predicting the next price
+        st.write(f"Predicted {coin} price for the next day: ${predicted_price:.2f}")
+        
+        # Plot the actual vs predicted prices (last 30 days)
+        st.line_chart(data.set_index('timestamp')['price'].tail(30))  # Display last 30 days' actual prices
+        st.line_chart(predictions.flatten())  # Display predictions for the last 30 days
+
+        # Predict today's date for the next day
+        today = datetime.now()
+        tomorrow = today + timedelta(days=1)
+        st.write(f"Predicted {coin} price for tomorrow ({tomorrow.strftime('%Y-%m-%d')}): ${predicted_price:.2f}")
